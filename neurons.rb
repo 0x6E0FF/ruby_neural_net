@@ -61,19 +61,16 @@ class Network
         # biases gradients array 
         biases_grad = Array.new(biases.size)
         # weights gradients array
-        weights_grad = sizes[0..-2].zip(sizes[1..-1]).map { |nb_inputs, nb_neurons|
-            Array.new(nb_neurons) {
-                Array.new(nb_inputs, 0.0)
-            }
-        }
+        weights_grad = Array.new(weights.size)
 
-        # compute output layer
+        # compute output layer 
         output = compute(inputs)
 
-        # compute gradient of cost function 
+        # compute gradient of cost function ∇aC
         cost_gradient = output.zip(expected_output).map{ |o, e| o - e }
 
         # compute error on output layer
+        # -> δL=∇aC⊙σ′(zL)
         error = cost_gradient.zip(@weighted_sums[-1]).map{ |c, z| c * sigmoid_prime(z) }
 
         biases_grad[-1] = error
@@ -82,12 +79,11 @@ class Network
         puts JSON.pretty_generate @weighted_sums
 
         # propagate error backward on each layer
-        # (@biases.size - 1).downto(1).each do |layer_i|
         (2...@nb_layers).map{|l| -l }.each do |layer_i|
-            puts layer_i
-            puts 'act size '+  @activations[layer_i].size.to_s
             error = @activations[layer_i].size.times.map { |n| # each neuron of current layer
-                # puts "layer=#{layer_i} : error.size=#{error.size} neuron##{n}"
+
+                # compute row n of new error vector (of size the number of neurons of current layer)
+                #   -> δl=((wl+1)Tδl+1) ⊙ σ′(zl)
                 error.map.with_index {|e,i| 
                     @weights[layer_i+1][i][n] * e 
                 }.reduce(:+) * sigmoid_prime(@weighted_sums[layer_i][n])
@@ -98,24 +94,45 @@ class Network
         [biases_grad, weights_grad]
     end
 
+    def train(batch)
+        # TODO 
+    end
+
     def to_s
         JSON.pretty_generate({"biases" => @biases, "weights" => @weights})
     end
+    
 end
 
-# n = Network.new([28*28,32,32,10])
-# i = 0
-# load_training(1).each do |img, label|
-#     expected = Array.new(10, 0.0)
-#     expected[label] = 1.0
+def run(network, inputs, verbose=false)
+    i = 0
+    nb_success = 0
+    inputs.each do |img, label|
+        found = network.compute(img).each_with_index.max[1]
+        puts "##{i} expected=#{label}: found=#{found}" if verbose
+        nb_success+=1 if label == found 
+        i += 1
+    end
+    nb_success
+end
 
-#     i += 1
-# end
+n = Network.new([28*28,32,32,10])
 
-n = Network.new([4,3,5,2])
-grad_b,grad_w = n.backpropagation([15, 48, 12, 50], [1,2])
-puts JSON.pretty_generate(n.biases)
-puts JSON.pretty_generate(grad_b)
-puts "-------------------------------------------"
+train_set = load_training(1000)
+test_set = load_tests(1000)
+
+test_sample = test_set.sample(100)
+puts "init: #{run(n, test_sample)} / #{test_sample.size}"
+#  train network and test on same sample to observe improvment
+10.times do |i|
+    n.train(train_set.sample(10));
+    puts "##{i.to_s.rjust(5,'0')} #{run(n, test_sample)}"
+end
+
+# n = Network.new([4,3,5,2])
+# grad_b,grad_w = n.backpropagation([15, 48, 12, 50], [1,2])
+# puts JSON.pretty_generate(n.biases)
+# puts JSON.pretty_generate(grad_b)
+# puts "-------------------------------------------"
 # puts JSON.pretty_generate(n.weights)
 # puts JSON.pretty_generate(grad_w)
