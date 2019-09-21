@@ -10,13 +10,16 @@ def load(nb_samples, img_file, label_file)
     labels = nil
     File.open(img_file, 'rb') do |file| 
         _,nb,r,c = file.read(4*4).unpack("NNNN")
-        nb_samples.times { |i| images << file.read(r*c).unpack("C" * r * c) }
+        nb_samples = nb if nb_samples == -1
+        nb_samples.times { |i| images << file.read(r*c).unpack("C" * r * c).map{|v| v / 255.0} }
     end
     File.open(label_file, 'rb') do |file| 
         _,nb = file.read(4*2).unpack("NN")
         labels = file.read(nb_samples).unpack("C" * nb_samples)
     end
-    images.zip(labels)
+    images.zip(labels).map { |img, label| 
+        [img, Array.new(10) { |i| i == label ? 1.0 : 0.0 }, label ] 
+    }
 end
 
 def load_training(nb_samples)

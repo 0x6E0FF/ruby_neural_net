@@ -2,7 +2,6 @@
 
 require 'matrix'
 require 'json'
-require_relative 'load_db'
 
 def debug(s)
     puts JSON.pretty_generate s
@@ -14,7 +13,7 @@ def sigmoid(v)
 end
 
 def sigmoid_prime(v)
-    sigmoid(v) * (1 - sigmoid(v))
+    sigmoid(v) * (1.0 - sigmoid(v))
 end
 
 def cost(output, expected)
@@ -115,7 +114,7 @@ class Network
         end
     end
 
-    def train(batch, learning_rate)
+    def train_batch(batch, learning_rate)
         sum_grad_b = biases.map{ |l| Array.new(l.size, 0.0) }
         sum_grad_w = weights.map{ |l| l.map {|n| Array.new(n.size, 0.0 )} }
         batch.each do |input, expected_output|
@@ -131,57 +130,17 @@ class Network
         end
     end
 
+    def train(train_set, nb_epoch, learning_rate, verbose = false)
+        nb_epoch.times do |e|
+            train_set.shuffle.each_slice(10).with_index do |batch, i|
+                puts "training batch #{i.to_s.rjust(2,'0')} / #{train_set.size / 10}" if verbose
+                train_batch(batch, learning_rate);
+                yield [e, i]
+            end
+        end
+    end
+
     def to_s
         JSON.pretty_generate({"biases" => @biases, "weights" => @weights})
     end
-    
 end
-
-def run(network, inputs, verbose=false)
-    i = 0
-    nb_success = 0
-    inputs.each do |img, label|
-        found = network.compute(img).each_with_index.max[1]
-        puts "##{i} expected=#{label}: found=#{found}" if verbose
-        nb_success+=1 if label == found 
-        i += 1
-    end
-    nb_success
-end
-
-n = Network.new([28*28,32,32,10])
-
-train_set = load_training(1000)
-test_set = load_tests(1000)
-
-test_sample = test_set.sample(100)
-# puts "init: #{run(n, test_sample)} / #{test_sample.size}"
-#  train network and test on same sample to observe improvment
-500.times do |i|
-    puts "##{i.to_s.rjust(5,'0')} TRAIN"
-    batch = train_set.sample(10).map { |img, label| [img, Array.new(10) { |i| i == label ? 1.0 : 0.0 } ] }
-    
-    n.train(batch, 2.0);
-    if i % 50 == 0
-        puts "##{i.to_s.rjust(5,'0')} #{run(n, test_sample)} / #{test_sample.size}"
-    end
-end
-
-# n = Network.new([4,3,5,2])
-# grad_b,grad_w = n.backpropagation([15, 48, 12, 50], [1,2])
-# puts JSON.pretty_generate(n.biases)
-# puts JSON.pretty_generate(grad_b)
-# puts "-------------------------------------------"
-# puts JSON.pretty_generate(n.weights)
-# puts JSON.pretty_generate(grad_w)
-# p n.compute([15, 48, 12, 50])
-
-# train_data = [
-#     [[15, 48, 12, 50], [1,2]],
-#     [[15, 48, 12, 50], [1,2]],
-#     [[15, 48, 12, 50], [1,2]],
-#     [[15, 48, 12, 50], [1,2]],
-#     [[15, 48, 12, 50], [1,2]]
-# ]
-# n.train(train_data,0.1)
-# p n.compute([15, 48, 12, 50])
