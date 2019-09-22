@@ -8,7 +8,7 @@ The aim is to try basic concepts of neural networks and deep learning in my moth
 ## performance comparison
 comparison of feedforward computation time on test database (10000 images):
 | version        | time(s) |
-|:---------------|--------:|
+| -------------- | ------- |
 | python version | 1.971   |
 | ruby version   | 26.189  |
 | c version      | 0.811   |
