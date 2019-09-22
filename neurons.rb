@@ -47,6 +47,33 @@ class Network
     def compute(inputs)
         @activations = [inputs]
         @weighted_sums = []
+        i = 0
+        while i < @biases.length
+            b = @biases[i]
+            w = @weights[i]
+            # each layer 
+            #    - b[nb_neuron]
+            #    - w[nb_neuron][nb_inputs]
+            @weighted_sums << w.zip(b).map { |wn, bn|
+                # each neuron
+                res = 0.0
+                j = 0
+                while j < wn.length 
+                    res += wn[j] * @activations[-1][j]
+                    j+=1
+                end
+                res + bn
+            }
+            @activations << @weighted_sums[-1].map{ |v| sigmoid(v) }
+            i+=1
+        end
+        @activations[-1]
+    end
+
+    def compute2(inputs)
+        @activations = [inputs]
+        @weighted_sums = []
+        i = 0
         @biases.zip(@weights).each do |b, w|
             # each layer 
             #    - b[nb_neuron]

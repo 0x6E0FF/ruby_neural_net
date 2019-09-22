@@ -11,7 +11,6 @@ def run(network, inputs, verbose=false)
     inputs.each do |img, out, label|
         output = network.compute(img)
         found = output.each_with_index.max[1]
-        puts "##{i} expected=#{label}: found=#{found}  #{output.map{|e|"%.2f" % e}.inspect}" if verbose
         nb_success+=1 if label == found 
         i += 1
     end
@@ -55,8 +54,8 @@ if n == nil
     test_sample = load_tests(10000)
 
     n.train(train_set, 1, 3.0, verbose) do |e, b|
+        puts "#{run(n, test_sample, false)} / #{test_sample.size}"
     end
-    puts "#{run(n, test_sample, false)} / #{test_sample.size}"
     d = Time.now
     File.open("#{n.sizes.join('-')}__#{d.day}-#{d.month}-#{d.hour}h#{d.min}", "wb") {|f| f.write(Marshal.dump(n)) }
 else
@@ -64,13 +63,7 @@ else
     test_set = load_tests(-1)
     t2 = Time.now
     puts "load time = #{t2 - t1}"
-    nb_success = 0
-    nb_tests  = 0
-    test_set.each_slice(100) do |batch|
-        nb_tests += 100
-        nb_success += run(n, batch, verbose)
-        puts "#{nb_success.to_s.rjust(5,'0')} / #{nb_tests.to_s.rjust(5,'0')}"
-    end
+    puts "#{run(n, test_set, verbose)} / #{test_set.size}"
     puts "compute time = #{Time.now - t2}"
 end
 
